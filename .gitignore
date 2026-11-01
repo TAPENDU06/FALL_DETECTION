@@ -221,3 +221,6 @@ __marimo__/
 
 gpu_test.py
 tests/
+data/raw/
+rgb_test_frame.jpg
+results/metrics/

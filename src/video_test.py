@@ -18,7 +18,7 @@ def main():
     parser.add_argument(
         "--source",
         required=True,
-        help="Path to prerecorded video"
+        help="Path to prerecorded RGB-D video"
     )
 
     parser.add_argument(
@@ -30,7 +30,7 @@ def main():
     parser.add_argument(
         "--display",
         action="store_true",
-        help="Display annotated video"
+        help="Display annotated RGB video"
     )
 
     args = parser.parse_args()
@@ -58,6 +58,9 @@ def main():
     frame_number = 0
     fall_detected = False
 
+    rgb_width = 0
+    rgb_height = 0
+
     video_name = os.path.splitext(
         os.path.basename(args.source)
     )[0]
@@ -81,7 +84,8 @@ def main():
             "timestamp",
             "torso_angle",
             "hip_speed",
-            "state"
+            "state",
+            "detector_state"
         ])
 
         while True:
@@ -93,10 +97,30 @@ def main():
 
             timestamp = frame_number / fps
 
+            # --------------------------------
+            # STEP 1: Extract RGB panel
+            # --------------------------------
+
             height, width = frame.shape[:2]
 
+            if width < 2:
+                raise RuntimeError(
+                    "Invalid video width."
+                )
+
+            # Depth = left panel
+            # RGB = right panel
+
+            rgb_frame = frame[:, width // 2:, :]
+
+            rgb_height, rgb_width = rgb_frame.shape[:2]
+
+            # --------------------------------
+            # STEP 2: YOLO Pose Estimation
+            # --------------------------------
+
             result = model.predict(
-                frame,
+                rgb_frame,
                 imgsz=640,
                 conf=0.35,
                 device=device,
@@ -108,6 +132,10 @@ def main():
             state = "NO_PERSON"
             angle = None
             hip_speed = None
+
+            # --------------------------------
+            # STEP 3: Keypoint Validation
+            # --------------------------------
 
             if (
                 result.keypoints is not None
@@ -140,13 +168,21 @@ def main():
 
                 if valid_pose:
 
+                    # --------------------------------
+                    # STEP 4: Feature Extraction
+                    # --------------------------------
+
                     features = extract_features(
                         keypoints,
-                        width,
-                        height
+                        rgb_width,
+                        rgb_height
                     )
 
                     if features is not None:
+
+                        # --------------------------------
+                        # STEP 5: Fall Detection
+                        # --------------------------------
 
                         detection = detector.update(
                             angle=features["torso_angle_deg"],
@@ -157,30 +193,61 @@ def main():
                         state = detection["state"]
 
                         angle = features["torso_angle_deg"]
+
                         hip_speed = detection["hip_speed"]
 
-                        if state == "FALL_DETECTED":
-                            fall_detected = True
+                    else:
+
+                        # Features unavailable:
+                        # preserve detector state temporarily.
+
+                        detector.handle_missing(timestamp)
 
                 else:
-                    detector.reset()
+
+                    # Required keypoints are unreliable.
+                    # Do not reset the complete detector.
+
+                    detector.handle_missing(timestamp)
 
             else:
-                detector.reset()
+
+                # No person/keypoints detected.
+                # Preserve a short possible-fall candidate.
+
+                detector.handle_missing(timestamp)
+
+            # --------------------------------
+            # STEP 6: Internal Detector State
+            # --------------------------------
+
+            detector_state = detector.state
+
+            if detector_state == "FALL_DETECTED":
+                fall_detected = True
+
+            # --------------------------------
+            # STEP 7: Save CSV Results
+            # --------------------------------
 
             writer.writerow([
                 frame_number,
                 round(timestamp, 3),
                 angle,
                 hip_speed,
-                state
+                state,
+                detector_state
             ])
+
+            # --------------------------------
+            # STEP 8: Display Status
+            # --------------------------------
 
             color = (
                 (0, 0, 255)
-                if state == "FALL_DETECTED"
+                if detector_state == "FALL_DETECTED"
                 else (0, 255, 0)
-                if state == "NORMAL"
+                if detector_state == "NORMAL"
                 else (0, 165, 255)
             )
 
@@ -197,7 +264,7 @@ def main():
             if args.display:
 
                 cv2.imshow(
-                    "Fall Detection - Video Test",
+                    "Fall Detection - RGB Video",
                     output
                 )
 
@@ -212,8 +279,15 @@ def main():
     print("\nVIDEO TEST COMPLETED")
     print("Video:", args.source)
     print("Frames processed:", frame_number)
-    print("FPS:", fps)
+    print("Original FPS:", fps)
+    print(
+        "RGB dimensions:",
+        rgb_width,
+        "x",
+        rgb_height
+    )
     print("Fall event flagged:", fall_detected)
+    print("Final detector state:", detector.state)
     print("CSV saved:", csv_path)
 
 
