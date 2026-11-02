@@ -1,0 +1,11 @@
+sequence_id,camera_id,label,video_path
+adl-16,cam0,normal,D:\Fall_Dataset\No fall\front_cam\adl-16-cam0.mp4
+fall-27,cam0,fall,D:\Fall_Dataset\Fall\front_cam\fall-27-cam0.mp4
+adl-03,cam0,normal,D:\Fall_Dataset\No fall\front_cam\adl-03-cam0.mp4
+adl-07,cam0,normal,D:\Fall_Dataset\No fall\front_cam\adl-07-cam0.mp4
+adl-28,cam0,normal,D:\Fall_Dataset\No fall\front_cam\adl-28-cam0.mp4
+adl-18,cam0,normal,D:\Fall_Dataset\No fall\front_cam\adl-18-cam0.mp4
+fall-19,cam0,fall,D:\Fall_Dataset\Fall\front_cam\fall-19-cam0.mp4
+fall-30,cam0,fall,D:\Fall_Dataset\Fall\front_cam\fall-30-cam0.mp4
+adl-40,cam0,normal,D:\Fall_Dataset\No fall\front_cam\adl-40-cam0.mp4
+fall-21,cam0,fall,D:\Fall_Dataset\Fall\front_cam\fall-21-cam0.mp4
