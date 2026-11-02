@@ -2,7 +2,7 @@
 import pandas as pd
 
 # Path to prediction CSV
-path = "results/metrics/adl-01-cam0_predictions.csv"
+path = "results/metrics/adl-04-cam0_predictions.csv"
 
 # Load CSV
 df = pd.read_csv(path)

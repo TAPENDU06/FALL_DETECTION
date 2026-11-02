@@ -13,7 +13,7 @@ class FallDetector:
         upright_memory=1.5,
         confirmation_time=0.8,
         cooldown_time=2.0,
-        max_missing_duration=0.6,
+        max_missing_duration=1.0,
         recovery_angle=40.0,
         recovery_time=0.4
     ):
